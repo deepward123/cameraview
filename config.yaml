@@ -16,15 +16,22 @@ source:
   rtsp_url: "rtsp://kullanici:sifre@192.168.1.64:554/stream1"
   file_path: "test.mp4"
   fps_limit: 15         # saniyede işlenecek en fazla kare
+  # Kamera ayna modundaysa (görüntü ters/aynalı) düzeltme:
+  #   horizontal = sağ-sol aynalı, vertical = baş aşağı, both = ikisi de
+  flip: horizontal
 
 processing:
   # Otomatik dijital zoom: barkod bölgesi bulunur, bu ölçeklerde
   # yakınlaştırılıp/uzaklaştırılarak okuma başarılı olana dek denenir.
-  zoom_scales: [1.0, 1.5, 2.0, 3.0, 4.0, 0.75, 0.5]
+  zoom_scales: [1.0, 1.5, 2.0, 3.0, 0.5]
   roi_margin: 0.20      # tespit edilen barkod bölgesine eklenecek pay (oran)
   max_regions: 3        # bir karede denenecek en fazla aday bölge
   enhance: true         # zoom yapılan kesitlere keskinleştirme/kontrast uygula
-  symbologies: []       # boş = tümü; örn: [CODE128, EAN13, QRCODE, CODE39]
+  symbologies: []       # boş = tümü; örn: [CODE128] — doldurmak hem yanlış
+                        # okumayı azaltır hem programı HIZLANDIRIR
+  # --- Performans ayarları (kasma/donma yaşanıyorsa) ---
+  max_width: 1280       # kare işlenmeden önce bu genişliğe küçültülür (0 = kapalı)
+  full_search_every: 3  # ağır arama (bölge + tüm zoom denemeleri) her N karede bir
 
 extraction:
   # Yazılacak numara: full = barkodun tamamı (varsayılan).

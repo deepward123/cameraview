@@ -41,6 +41,7 @@ class Pipeline:
             roi_margin=cfg.processing.roi_margin,
             max_regions=cfg.processing.max_regions,
             enhance=cfg.processing.enhance,
+            full_search_every=cfg.processing.full_search_every,
         )
         self.extractor = Extractor(cfg.extraction)
         self.outputs = create_outputs(cfg.output)
@@ -81,6 +82,22 @@ class Pipeline:
             target.close()
 
 
+_FLIP_CODES = {"horizontal": 1, "vertical": 0, "both": -1}
+
+
+def prepare_frame(frame: np.ndarray, flip: str = "none", max_width: int = 0) -> np.ndarray:
+    """Kareyi işlemeye hazırlar: ayna/ters görüntüyü düzeltir ve performans
+    için yapılandırılan genişliğe küçültür."""
+    code = _FLIP_CODES.get(flip)
+    if code is not None:
+        frame = cv2.flip(frame, code)
+    h, w = frame.shape[:2]
+    if max_width and w > max_width:
+        new_h = int(h * max_width / w)
+        frame = cv2.resize(frame, (max_width, new_h), interpolation=cv2.INTER_AREA)
+    return frame
+
+
 def annotate(frame: np.ndarray, outcome: FrameOutcome, draw_regions: bool = True) -> np.ndarray:
     """Önizleme karesine barkod kutusu, zoom bilgisi ve numarayı çizer."""
     out = frame.copy()
@@ -119,6 +136,7 @@ def run(cfg: AppConfig) -> None:
                     time.sleep(0.5)  # kaynak koptu; kısa bekleyip yeniden dene
                     continue
 
+                frame = prepare_frame(frame, cfg.source.flip, cfg.processing.max_width)
                 outcome = pipeline.process_frame(frame)
 
                 if preview:
@@ -153,6 +171,7 @@ def process_image(cfg: AppConfig, image_path: str) -> FrameOutcome:
     frame = cv2.imread(image_path)
     if frame is None:
         raise FileNotFoundError(f"Görüntü okunamadı: {image_path}")
+    frame = prepare_frame(frame, cfg.source.flip, cfg.processing.max_width)
     pipeline = Pipeline(cfg)
     try:
         return pipeline.process_frame(frame)

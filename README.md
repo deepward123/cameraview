@@ -78,11 +78,27 @@ Testleri VS Code'un **Testing** panelinden (kavanoz simgesi) çalıştırabilirs
 |---|---|
 | `source` | Görüntü nereden alınacak: `screen` (varsayılan), `camera`, `rtsp`, `file` |
 | `source.screen.region` | Ekranın yalnızca kamera penceresi olan bölgesini yakala |
+| `source.flip` | Ayna/ters görüntü düzeltme: `horizontal`, `vertical`, `both`, `none` |
 | `processing.zoom_scales` | Denenecek dijital zoom ölçekleri (yakınlaştırma **ve** uzaklaştırma) |
 | `processing.symbologies` | Beklenen barkod tipleri (örn. `[CODE128]`) — yanlış okumaları azaltır |
+| `processing.max_width` | Kareyi işlemeden önce küçült (performans) |
+| `processing.full_search_every` | Ağır aramayı her N karede bir yap (performans) |
 | `extraction` | `full` = barkodun tamamını yaz; gerekirse `slice`/`regex` ile bir kısmı |
 | `output.targets` | `console` ve/veya `csv` |
 | `output.dedupe_seconds` | Aynı barkodun tekrar yazılmaması için bekleme süresi |
+
+## Kasma / yavaşlık yaşarsanız
+
+Ayarları şu sırayla deneyin (`config.yaml`):
+
+1. `processing.symbologies: [CODE128]` — yalnızca kullandığınız barkod tipini
+   yazın; çözücü diğer tipleri hiç denemez, en büyük hızlanmayı bu sağlar.
+2. `source.screen.region` — ekranın tamamı yerine yalnızca kamera görüntüsünün
+   olduğu bölgeyi yakalayın (ör. `{left: 0, top: 0, width: 1280, height: 720}`).
+3. `processing.max_width: 960` — kareler daha da küçültülür.
+4. `source.fps_limit: 10` — saniyede işlenen kare sayısını düşürür.
+5. `processing.full_search_every: 5` — ağır arama daha seyrek çalışır
+   (barkodun ilk yakalanması en fazla yarım saniye gecikebilir, sonrası aynı).
 
 ## Testler
 

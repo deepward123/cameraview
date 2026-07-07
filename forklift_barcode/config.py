@@ -23,17 +23,24 @@ class SourceConfig:
     file_path: str = ""
     screen: ScreenConfig = field(default_factory=ScreenConfig)
     fps_limit: float = 15.0
+    flip: str = "none"  # none | horizontal (ayna) | vertical | both
 
 
 @dataclass
 class ProcessingConfig:
     zoom_scales: list[float] = field(
-        default_factory=lambda: [1.0, 1.5, 2.0, 3.0, 4.0, 0.75, 0.5]
+        default_factory=lambda: [1.0, 1.5, 2.0, 3.0, 0.5]
     )
     roi_margin: float = 0.20
     max_regions: int = 3
     enhance: bool = True
     symbologies: list[str] = field(default_factory=list)
+    # Performans: işlenmeden önce kare bu genişliğe küçültülür (0 = kapalı)
+    max_width: int = 1280
+    # Performans: ağır arama (bölge tespiti + tüm zoom denemeleri) her
+    # karede değil, her N karede bir yapılır; aradaki karelerde yalnızca
+    # hızlı deneme (tam kare + takip edilen bölge) çalışır.
+    full_search_every: int = 3
 
 
 @dataclass
@@ -110,6 +117,10 @@ def load_config(path: str | Path) -> AppConfig:
 def _validate(cfg: AppConfig) -> None:
     if cfg.source.type not in ("camera", "screen", "rtsp", "file"):
         raise ValueError(f"Geçersiz kaynak tipi: {cfg.source.type}")
+    if cfg.source.flip not in ("none", "horizontal", "vertical", "both"):
+        raise ValueError(f"Geçersiz flip değeri: {cfg.source.flip}")
+    if cfg.processing.full_search_every < 1:
+        raise ValueError("processing.full_search_every 1 veya daha büyük olmalı")
     if cfg.extraction.mode not in ("full", "slice", "regex"):
         raise ValueError(f"Geçersiz ayıklama modu: {cfg.extraction.mode}")
     if cfg.extraction.mode == "slice" and cfg.extraction.start < 1:

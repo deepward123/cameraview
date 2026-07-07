@@ -43,7 +43,8 @@ def build_frame(code: str, shrink: float, blur: float, pos: tuple[int, int]):
 def main() -> int:
     OUT_DIR.mkdir(exist_ok=True)
     cfg = AppConfig(
-        processing=ProcessingConfig(symbologies=["CODE128"]),
+        # full_search_every=1: demoda her sahne tek karedir, ağır arama hep açık
+        processing=ProcessingConfig(symbologies=["CODE128"], full_search_every=1),
         extraction=ExtractionConfig(mode="full"),
         output=OutputConfig(targets=["console"], dedupe_seconds=0.0),
     )

@@ -42,17 +42,24 @@ class AutoZoom:
         roi_margin: float = 0.2,
         max_regions: int = 3,
         enhance: bool = True,
+        full_search_every: int = 1,
     ):
         self.decoder = decoder
         self.zoom_scales = zoom_scales
         self.roi_margin = roi_margin
         self.max_regions = max_regions
         self.enhance = enhance
+        # Ağır arama (bölge tespiti + tüm zoom denemeleri) her N karede bir
+        # yapılır; aradaki kareler yalnızca hızlı denemelerle geçilir.
+        # Böylece barkod görünmediği sürece işlemci boğulmaz (kasma/donma).
+        self.full_search_every = max(1, full_search_every)
+        self._frame_index = 0
         self._last_hit: Optional[tuple[Rect, float]] = None  # (roi, scale)
         self.last_regions: list[Rect] = []  # önizleme için son aday bölgeler
 
     def process(self, frame: np.ndarray) -> Optional[ZoomResult]:
         h, w = frame.shape[:2]
+        self._frame_index += 1
 
         # 1) Son başarılı bölge+ölçek varsa önce onu dene (takip modu)
         if self._last_hit is not None:
@@ -70,7 +77,10 @@ class AutoZoom:
             self._last_hit = (best.rect, 1.0)
             return ZoomResult(decoded=best, scale=1.0, roi=None)
 
-        # 3) Aday bölgeleri bul, her birini farklı zoom'larla dene
+        # 3) Ağır arama: aday bölgeleri bul, her birini farklı zoom'larla
+        #    dene. Yük dengelemek için her N karede bir çalışır (ilk kare dahil).
+        if (self._frame_index - 1) % self.full_search_every != 0:
+            return None
         self.last_regions = find_barcode_regions(frame, max_regions=self.max_regions)
         for region in self.last_regions:
             roi = expand_rect(region, self.roi_margin, (w, h))
