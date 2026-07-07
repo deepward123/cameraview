@@ -1,0 +1,39 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Canlı okuma (ekrandaki barkodu oku)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "forklift_barcode",
+            "args": ["--config", "config.yaml"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Demo (donanımsız, sentetik barkodlarla)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tools/demo.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Tek fotoğraf dene",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "forklift_barcode",
+            "args": ["--image", "${input:imagePath}", "--no-preview"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "imagePath",
+            "type": "promptString",
+            "description": "Denenecek fotoğrafın yolu (örn. demo_out/uzak.png)",
+            "default": "demo_out/uzak.png"
+        }
+    ]
+}

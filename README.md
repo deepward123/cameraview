@@ -57,6 +57,21 @@ python tools/demo.py
 
 Önizleme penceresinde `q` veya `ESC` ile çıkılır.
 
+## VS Code ile çalıştırma
+
+1. Klasörü VS Code ile açın (**File → Open Folder**). Önerilen **Python**
+   eklentisini kurun (sağ altta bildirim çıkar).
+2. `Ctrl+Shift+P` → **Python: Create Environment** → **Venv** → Python
+   sürümünüzü seçin → bağımlılık sorusunda `requirements.txt`'i işaretleyin.
+   (VS Code sanal ortamı kurup paketleri otomatik yükler.)
+3. `F5`'e basın ve çalıştırma seçeneğini seçin:
+   - **Demo (donanımsız)** — önce bunu deneyin; sentetik barkodlarla tüm
+     sistemi test eder, sonuç görsellerini `demo_out/` klasörüne yazar.
+   - **Canlı okuma** — ekranı yakalayıp barkod aramaya başlar.
+   - **Tek fotoğraf dene** — bir fotoğraf yolu sorar ve sonucu yazar.
+
+Testleri VS Code'un **Testing** panelinden (kavanoz simgesi) çalıştırabilirsiniz.
+
 ## Yapılandırma özeti (`config.yaml`)
 
 | Bölüm | Ne işe yarar |
