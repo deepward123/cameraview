@@ -11,9 +11,11 @@ log = logging.getLogger(__name__)
 
 class ConsoleOutput(OutputTarget):
     def send(self, reading: Reading) -> bool:
+        detail = f"tip: {reading.symbol}, zoom: {reading.zoom:g}x"
+        if reading.value != reading.raw:
+            detail = f"barkodun tamamı: {reading.raw}, {detail}"
         print(
             f"[{reading.timestamp.astimezone().strftime('%H:%M:%S')}] "
-            f"NUMARA: {reading.value}  "
-            f"(barkod: {reading.raw}, tip: {reading.symbol}, zoom: {reading.zoom:g}x)"
+            f"BARKOD: {reading.value}  ({detail})"
         )
         return True

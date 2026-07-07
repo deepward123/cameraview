@@ -1,5 +1,5 @@
 """Ana uygulama: kare al -> otomatik zoom ile barkod oku -> numarayı ayıkla
--> hedeflere (konsol/CSV/SAP) gönder -> önizlemede göster."""
+-> bilgisayarda yaz (konsol + önizleme, istenirse CSV kaydı)."""
 
 from __future__ import annotations
 
@@ -93,7 +93,7 @@ def annotate(frame: np.ndarray, outcome: FrameOutcome, draw_regions: bool = True
         cv2.putText(out, f"zoom {outcome.result.scale:g}x", (x, max(20, y - 8)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
     if outcome.value is not None:
-        text = f"NUMARA: {outcome.value}"
+        text = f"BARKOD: {outcome.value}"
         color = (0, 255, 0) if outcome.sent else (0, 200, 255)
         cv2.rectangle(out, (0, 0), (out.shape[1], 44), (0, 0, 0), -1)
         cv2.putText(out, text, (10, 32), cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)

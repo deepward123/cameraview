@@ -44,8 +44,7 @@ def main() -> int:
     OUT_DIR.mkdir(exist_ok=True)
     cfg = AppConfig(
         processing=ProcessingConfig(symbologies=["CODE128"]),
-        # Örnek kural: 'PLT' önekinden sonraki 10 haneyi al
-        extraction=ExtractionConfig(mode="regex", regex=r"PLT(\d{10})", regex_group=1),
+        extraction=ExtractionConfig(mode="full"),
         output=OutputConfig(targets=["console"], dedupe_seconds=0.0),
     )
     pipeline = Pipeline(cfg)

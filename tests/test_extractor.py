@@ -10,6 +10,16 @@ def make(**kw):
     return Extractor(ExtractionConfig(**kw))
 
 
+def test_full_returns_whole_barcode():
+    ex = make(mode="full")
+    assert ex.extract("PLT0012345678TR") == "PLT0012345678TR"
+
+
+def test_full_with_digits_only():
+    ex = make(mode="full", digits_only=True)
+    assert ex.extract("PLT0012345678TR") == "0012345678"
+
+
 def test_slice_basic():
     ex = make(mode="slice", start=1, length=5)
     assert ex.extract("1234567890") == "12345"

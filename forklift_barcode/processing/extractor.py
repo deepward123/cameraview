@@ -12,8 +12,9 @@ log = logging.getLogger(__name__)
 
 
 class Extractor:
-    """Barkodun tamamından, yapılandırılan kurala göre numara çıkarır.
+    """Barkod içeriğinden, yapılandırılan kurala göre yazılacak numarayı çıkarır.
 
+    - full : barkodun tamamı olduğu gibi kullanılır (varsayılan)
     - slice: 1 tabanlı start + length ile karakter aralığı
     - regex: düzenli ifadenin verilen yakalama grubu
     - digits_only: kural uygulanmadan önce rakam dışı karakterleri at
@@ -28,7 +29,9 @@ class Extractor:
         if self.cfg.digits_only:
             text = "".join(ch for ch in text if ch.isdigit())
 
-        if self.cfg.mode == "slice":
+        if self.cfg.mode == "full":
+            value = text
+        elif self.cfg.mode == "slice":
             start = self.cfg.start - 1
             value = text[start : start + self.cfg.length]
         else:

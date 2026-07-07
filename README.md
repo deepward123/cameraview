@@ -1,38 +1,37 @@
 # Forklift Barkod Okuyucu
 
-Forklift kamerasının görüntüsünü (ekrana yansıyan görüntü, USB/capture kartı,
-RTSP IP kamera veya video dosyası) okuyup işleyen, barkodu **otomatik dijital
-zoom** ile yakınlaştırıp/uzaklaştırarak çözen ve barkodun **belirli bir
-kısmındaki numarayı** ayıklayıp **SAP'ye gönderen** uygulama.
+Forklift kamerasının **ekrana yansıyan görüntüsündeki barkodu** okuyup,
+barkod numarasını **bilgisayarda yazan** uygulama. Barkod net okunamıyorsa
+**otomatik dijital zoom** ile yakınlaştırıp/uzaklaştırarak okumayı dener.
 
 ```
-Görüntü kaynağı ──> Barkod bölgesi tespiti ──> Otomatik zoom (in/out) ──> Çözümleme
-                                                                              │
-       SAP / CSV / Konsol  <── Tekrar filtresi <── Numara ayıklama  <─────────┘
+Ekran/kamera görüntüsü ──> Barkod bölgesi tespiti ──> Otomatik zoom (in/out)
+                                                              │
+        Konsol + önizleme penceresi <── Barkod numarası <── Çözümleme
 ```
 
 ## Özellikler
 
-- **4 görüntü kaynağı:** kameranın yansıdığı **ekranı yakalama** (mss),
-  USB kamera / HDMI-AV capture kartı, RTSP IP kamera, video dosyası
+- **Ekran yakalama (varsayılan):** kameranın yansıdığı ekranı doğrudan okur;
+  `screen.region` ile yalnızca kamera penceresinin bölgesi seçilebilir.
+  İstenirse USB kamera / HDMI-AV capture kartı, RTSP IP kamera veya video
+  dosyası da kaynak olarak kullanılabilir.
 - **Otomatik dijital zoom:** barkod tam karede okunamazsa aday bölgeler
-  bulunur; yapılandırılan ölçeklerde (örn. 0.5x–4x) yakınlaştırılıp
-  uzaklaştırılarak okuma başarılı olana dek denenir. Başarılı bölge+ölçek
-  hatırlanır, sonraki karelerde önce o denenir (takip modu).
-- **Numara ayıklama:** barkod içeriğinin istenen kısmı karakter aralığı
-  (`slice`) veya düzenli ifade (`regex`) ile alınır
-- **SAP entegrasyonu:** OData/REST uç noktasına JSON POST; basic/token
-  kimlik doğrulama, X-CSRF-Token akışı, yeniden deneme ve **çevrimdışı
-  kuyruk** (ağ yokken `sap_failed.jsonl` dosyasına yazılır)
-- **Canlı önizleme:** barkod kutusu, kullanılan zoom ve ayıklanan numara
-  ekranda gösterilir
-- **Tekrar filtresi:** aynı numara belirlenen süre içinde ikinci kez gönderilmez
+  bulunur; yapılandırılan ölçeklerde (0.5x–4x) yakınlaştırılıp uzaklaştırılarak
+  okuma başarılı olana dek denenir. Başarılı bölge+ölçek hatırlanır, sonraki
+  karelerde önce o denenir.
+- **Numarayı bilgisayarda yazar:** okunan barkod hem konsola yazılır hem de
+  önizleme penceresinin üst şeridinde büyük puntoyla gösterilir. İstenirse
+  `csv` hedefiyle `readings.csv` dosyasına da kaydedilir.
+- **Tekrar filtresi:** aynı barkod belirlenen süre içinde ikinci kez yazılmaz.
+- İleride gerekirse barkodun yalnızca bir kısmını almak için `slice`/`regex`
+  ayıklama kuralları hazırdır (`config.yaml` → `extraction`).
 
 ## Kurulum
 
 ```bash
-# Sistem bağımlılığı (pyzbar için)
-sudo apt install libzbar0        # Windows'ta gerekmez (whl içinde gelir)
+# Linux'ta sistem bağımlılığı (pyzbar için; Windows'ta gerekmez)
+sudo apt install libzbar0
 
 pip install -r requirements.txt
 ```
@@ -40,15 +39,14 @@ pip install -r requirements.txt
 ## Kullanım
 
 ```bash
-# Yapılandırmayı düzenleyin (kaynak, ayıklama kuralı, SAP adresi)
-nano config.yaml
+# Varsayılan: birincil ekranı yakalar, bulduğu barkodu konsola yazar
+python -m forklift_barcode
 
-# SAP kimlik bilgileri ortam değişkeniyle verilir (config'e yazılmaz)
-export SAP_USER=rfc_kullanici
-export SAP_PASSWORD=parola
-
-# Canlı okuma
+# Yapılandırma dosyasıyla (kaynak, bölge, zoom ölçekleri...)
 python -m forklift_barcode --config config.yaml
+
+# USB kamera / capture kartından okumak için
+python -m forklift_barcode --source camera
 
 # Tek bir fotoğrafı dene
 python -m forklift_barcode --image foto.png
@@ -63,31 +61,13 @@ python tools/demo.py
 
 | Bölüm | Ne işe yarar |
 |---|---|
-| `source` | Görüntü nereden alınacak: `camera`, `screen`, `rtsp`, `file` |
+| `source` | Görüntü nereden alınacak: `screen` (varsayılan), `camera`, `rtsp`, `file` |
+| `source.screen.region` | Ekranın yalnızca kamera penceresi olan bölgesini yakala |
 | `processing.zoom_scales` | Denenecek dijital zoom ölçekleri (yakınlaştırma **ve** uzaklaştırma) |
 | `processing.symbologies` | Beklenen barkod tipleri (örn. `[CODE128]`) — yanlış okumaları azaltır |
-| `extraction` | Numaranın barkodun neresinden alınacağı (`slice` veya `regex`) |
-| `output.targets` | Sonuç nereye gidecek: `console`, `csv`, `sap` (birden fazla seçilebilir) |
-| `output.sap` | SAP uç noktası, kimlik doğrulama ve alan eşlemesi |
-
-### Ayıklama örnekleri
-
-```yaml
-# Barkodun 4. karakterinden itibaren 10 hane:
-extraction: {mode: slice, start: 4, length: 10}
-
-# "PLT" önekinden sonraki 10 rakam:
-extraction: {mode: regex, regex: 'PLT(\d{10})', regex_group: 1}
-
-# Son 8 rakam:
-extraction: {mode: regex, regex: '(\d{8})$', regex_group: 1}
-```
-
-### SAP alan eşlemesi
-
-`field_map` içindeki şablonlarda şu yer tutucular kullanılabilir:
-`{value}` (ayıklanan numara), `{raw}` (barkodun tamamı), `{timestamp}`,
-`{symbol}` (barkod tipi), `{zoom}`.
+| `extraction` | `full` = barkodun tamamını yaz; gerekirse `slice`/`regex` ile bir kısmı |
+| `output.targets` | `console` ve/veya `csv` |
+| `output.dedupe_seconds` | Aynı barkodun tekrar yazılmaması için bekleme süresi |
 
 ## Testler
 
@@ -97,7 +77,7 @@ python -m pytest tests/
 
 Testler harici donanım gerektirmez: `tests/barcode_gen.py` içindeki Code128
 üreteciyle sentetik kareler oluşturulur ve tüm hat (tespit → zoom →
-çözümleme → ayıklama → gönderim) uçtan uca doğrulanır.
+çözümleme → yazma) uçtan uca doğrulanır.
 
 ## Proje yapısı
 
@@ -106,21 +86,17 @@ forklift_barcode/
 ├── __main__.py          # CLI girişi
 ├── app.py               # ana döngü + önizleme overlay
 ├── config.py            # YAML yapılandırma
-├── capture/             # kamera / ekran / RTSP / dosya kaynakları
+├── capture/             # ekran / kamera / RTSP / dosya kaynakları
 ├── processing/
 │   ├── locator.py       # barkod bölgesi tespiti (gradyan+morfoloji)
 │   ├── zoom.py          # otomatik dijital zoom + takip
 │   ├── decoder.py       # pyzbar (birincil) + OpenCV (yedek)
-│   └── extractor.py     # numara ayıklama (slice/regex)
-└── output/              # konsol, CSV, SAP (CSRF + çevrimdışı kuyruk)
+│   └── extractor.py     # yazılacak numara (full/slice/regex)
+└── output/              # konsol + CSV kaydı
 ```
 
 ## Notlar
 
-- Ekran yakalama (`source.type: screen`) kameranın görüntüsünün bir monitörde
-  gösterildiği kurulumlar içindir; `screen.region` ile yalnızca kamera
-  penceresinin bölgesi yakalanabilir.
 - Dijital zoom mevcut pikselleri büyütür; çok uzak/bulanık barkodlar için
   kamera çözünürlüğünü artırmak veya optik zoom kullanmak gerekebilir.
-- Sunucu/kiosk ortamında önizleme istemiyorsanız `--no-preview` bayrağını
-  kullanın ve `opencv-python` yerine `opencv-python-headless` kurabilirsiniz.
+- Önizleme penceresi istemiyorsanız `--no-preview` bayrağını kullanın.

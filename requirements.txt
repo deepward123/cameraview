@@ -2,12 +2,11 @@
 opencv-python>=4.8
 numpy>=1.24
 
-# Barkod çözümleme (sistemde libzbar gerekir: apt install libzbar0)
+# Barkod çözümleme (Linux'ta sistemde libzbar gerekir: apt install libzbar0)
 pyzbar>=0.1.9
 
-# Ekran yakalama (kameranın yansıdığı monitörü okumak için)
+# Ekran yakalama (kameranın yansıdığı ekranı okumak için)
 mss>=9.0
 
-# Yapılandırma ve SAP entegrasyonu
+# Yapılandırma dosyası
 PyYAML>=6.0
-requests>=2.31

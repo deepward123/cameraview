@@ -38,7 +38,7 @@ class ProcessingConfig:
 
 @dataclass
 class ExtractionConfig:
-    mode: str = "slice"  # slice | regex
+    mode: str = "full"  # full (barkodun tamamı) | slice | regex
     start: int = 1  # 1 tabanlı
     length: int = 10
     regex: str = ""
@@ -53,24 +53,10 @@ class CsvConfig:
 
 
 @dataclass
-class SapConfig:
-    url: str = ""
-    auth: str = "basic"  # basic | token | none
-    user_env: str = "SAP_USER"
-    password_env: str = "SAP_PASSWORD"
-    token_env: str = "SAP_TOKEN"
-    csrf: bool = True
-    timeout: float = 10.0
-    verify_tls: bool = True
-    field_map: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass
 class OutputConfig:
     targets: list[str] = field(default_factory=lambda: ["console"])
     dedupe_seconds: float = 5.0
     csv: CsvConfig = field(default_factory=CsvConfig)
-    sap: SapConfig = field(default_factory=SapConfig)
 
 
 @dataclass
@@ -103,7 +89,6 @@ def _merge(dc_cls, data: Any):
         nested = {
             "screen": ScreenConfig,
             "csv": CsvConfig,
-            "sap": SapConfig,
         }.get(f.name)
         kwargs[f.name] = _merge(nested, value) if nested else value
     return dc_cls(**kwargs)
@@ -125,16 +110,14 @@ def load_config(path: str | Path) -> AppConfig:
 def _validate(cfg: AppConfig) -> None:
     if cfg.source.type not in ("camera", "screen", "rtsp", "file"):
         raise ValueError(f"Geçersiz kaynak tipi: {cfg.source.type}")
-    if cfg.extraction.mode not in ("slice", "regex"):
+    if cfg.extraction.mode not in ("full", "slice", "regex"):
         raise ValueError(f"Geçersiz ayıklama modu: {cfg.extraction.mode}")
     if cfg.extraction.mode == "slice" and cfg.extraction.start < 1:
         raise ValueError("extraction.start 1 veya daha büyük olmalı (1 tabanlı)")
     if cfg.extraction.mode == "regex" and not cfg.extraction.regex:
         raise ValueError("extraction.mode=regex için 'regex' alanı gerekli")
     for target in cfg.output.targets:
-        if target not in ("console", "csv", "sap"):
+        if target not in ("console", "csv"):
             raise ValueError(f"Geçersiz çıkış hedefi: {target}")
-    if "sap" in cfg.output.targets and not cfg.output.sap.url:
-        raise ValueError("SAP hedefi için output.sap.url gerekli")
     if not cfg.processing.zoom_scales:
         raise ValueError("processing.zoom_scales boş olamaz")

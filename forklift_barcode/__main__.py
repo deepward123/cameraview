@@ -14,7 +14,8 @@ from .config import AppConfig, load_config
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="forklift_barcode",
-        description="Forklift kamera görüntüsünden barkod okuyup numarayı SAP'ye gönderir.",
+        description="Forklift kamerasının ekrandaki görüntüsünden barkodu okuyup "
+                    "numarayı bilgisayarda yazar.",
     )
     parser.add_argument("--config", "-c", default="config.yaml",
                         help="YAML yapılandırma dosyası (varsayılan: config.yaml)")
