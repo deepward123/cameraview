@@ -1,0 +1,13 @@
+# Görüntü işleme (önizleme penceresi için tam sürüm; sunucuda opencv-python-headless kullanılabilir)
+opencv-python>=4.8
+numpy>=1.24
+
+# Barkod çözümleme (sistemde libzbar gerekir: apt install libzbar0)
+pyzbar>=0.1.9
+
+# Ekran yakalama (kameranın yansıdığı monitörü okumak için)
+mss>=9.0
+
+# Yapılandırma ve SAP entegrasyonu
+PyYAML>=6.0
+requests>=2.31

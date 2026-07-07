@@ -1,0 +1,69 @@
+# Forklift Barkod Okuyucu - Yapılandırma
+# Tüm ayarlar bu dosyadan yapılır: python -m forklift_barcode --config config.yaml
+
+source:
+  # Görüntü kaynağı: camera | screen | rtsp | file
+  #   camera : Forklifte bağlı USB kamera veya HDMI/AV capture kartı
+  #   screen : Kameranın yansıdığı monitörün ekran görüntüsü (mss ile)
+  #   rtsp   : IP kamera akışı
+  #   file   : Test için video dosyası
+  type: camera
+  camera_index: 0
+  rtsp_url: "rtsp://kullanici:sifre@192.168.1.64:554/stream1"
+  file_path: "test.mp4"
+  screen:
+    monitor: 1          # mss monitör numarası (1 = birincil ekran)
+    region: null        # ekranın tamamı; veya {left: 0, top: 0, width: 1280, height: 720}
+  fps_limit: 15         # saniyede işlenecek en fazla kare
+
+processing:
+  # Otomatik dijital zoom: barkod bölgesi bulunur, bu ölçeklerde
+  # yakınlaştırılıp/uzaklaştırılarak okuma başarılı olana dek denenir.
+  zoom_scales: [1.0, 1.5, 2.0, 3.0, 4.0, 0.75, 0.5]
+  roi_margin: 0.20      # tespit edilen barkod bölgesine eklenecek pay (oran)
+  max_regions: 3        # bir karede denenecek en fazla aday bölge
+  enhance: true         # zoom yapılan kesitlere keskinleştirme/kontrast uygula
+  symbologies: []       # boş = tümü; örn: [CODE128, EAN13, QRCODE, CODE39]
+
+extraction:
+  # Barkodun İSTENEN KISMINI ayıklama kuralı.
+  # mode: slice -> karakter aralığı (start 1'den başlar)
+  # mode: regex -> düzenli ifade ile yakalama grubu
+  mode: slice
+  start: 1
+  length: 10
+  # mode: regex örneği:
+  # regex: '(\d{8})$'      # son 8 rakam
+  # regex_group: 1
+  digits_only: false    # true ise önce rakam olmayan karakterler atılır
+  min_length: 1         # ayıklanan değer bundan kısaysa geçersiz sayılır
+
+output:
+  # Hedefler: console | csv | sap  (birden fazlası aynı anda seçilebilir)
+  targets: [console, csv]
+  dedupe_seconds: 5.0   # aynı numara bu süre içinde tekrar gönderilmez
+  csv:
+    path: readings.csv
+  sap:
+    # SAP Gateway / OData veya REST servisi uç noktası (ZWM_BARCODE_SRV örnektir)
+    url: "https://sap.ornek-firma.com:44300/sap/opu/odata/sap/ZWM_BARCODE_SRV/Readings"
+    auth: basic          # basic | token | none
+    user_env: SAP_USER          # kullanıcı adı bu ortam değişkeninden okunur
+    password_env: SAP_PASSWORD  # parola bu ortam değişkeninden okunur
+    token_env: SAP_TOKEN        # auth: token ise Bearer token buradan okunur
+    csrf: true           # SAP OData için X-CSRF-Token al (GET ile Fetch)
+    timeout: 10
+    verify_tls: true
+    # Gönderilecek JSON gövdesi; {value}=ayıklanan numara, {raw}=barkodun tamamı,
+    # {timestamp}=ISO zaman, {symbol}=barkod tipi
+    field_map:
+      Barcode: "{value}"
+      RawCode: "{raw}"
+      ReadAt: "{timestamp}"
+      SymbolType: "{symbol}"
+      Device: "forklift-01"
+
+preview:
+  enabled: true               # canlı önizleme penceresi (barkod + numara overlay)
+  window_name: "Forklift Barkod"
+  draw_regions: true          # aday bölgeleri çiz

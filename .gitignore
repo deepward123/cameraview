@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Çalışma zamanı çıktıları
+readings.csv
+sap_failed.jsonl
+demo_out/
+*.log
