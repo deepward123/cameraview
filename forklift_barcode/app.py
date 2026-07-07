@@ -1,11 +1,15 @@
 """Ana uygulama: kare al -> otomatik zoom ile barkod oku -> numarayı ayıkla
--> bilgisayarda yaz (konsol + önizleme, istenirse CSV kaydı)."""
+-> bilgisayarda yaz (konsol + önizleme, istenirse CSV kaydı).
+
+Görüntü akışı ile barkod işleme ayrı iş parçacıklarında çalışır: ağır
+arama sürerken bile önizleme akıcı kalır (kesik kesik donma olmaz)."""
 
 from __future__ import annotations
 
 import logging
+import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 import cv2
@@ -23,10 +27,10 @@ log = logging.getLogger(__name__)
 class FrameOutcome:
     """Tek karenin işlenme sonucu (önizleme ve test için)."""
 
-    result: Optional[ZoomResult]  # barkod bulunduysa
-    value: Optional[str]  # ayıklanan numara (geçerliyse)
-    sent: bool  # bu karede hedeflere gönderim yapıldı mı
-    regions: list  # denenen aday bölgeler
+    result: Optional[ZoomResult] = None  # barkod bulunduysa
+    value: Optional[str] = None  # ayıklanan numara (geçerliyse)
+    sent: bool = False  # bu karede hedeflere gönderim yapıldı mı
+    regions: list = field(default_factory=list)  # denenen aday bölgeler
 
 
 class Pipeline:
@@ -82,6 +86,55 @@ class Pipeline:
             target.close()
 
 
+class FrameProcessor(threading.Thread):
+    """Kareleri arka planda işleyen iş parçacığı.
+
+    Ana döngü kareleri `submit` ile bırakır ve beklemeden devam eder;
+    işleme yetişemezse aradaki kareler atlanır (her zaman en yeni kare
+    işlenir). Son sonuç `latest` ile okunur. OpenCV/zbar çağrıları GIL'i
+    bıraktığı için işleme gerçekten paralel yürür.
+    """
+
+    def __init__(self, pipeline: Pipeline):
+        super().__init__(daemon=True, name="frame-processor")
+        self.pipeline = pipeline
+        self._cond = threading.Condition()
+        self._pending: Optional[np.ndarray] = None
+        self._latest = FrameOutcome()
+        self._stopped = False
+
+    def submit(self, frame: np.ndarray) -> None:
+        with self._cond:
+            self._pending = frame  # önceki bekleyen kare varsa üzerine yazılır
+            self._cond.notify()
+
+    @property
+    def latest(self) -> FrameOutcome:
+        with self._cond:
+            return self._latest
+
+    def run(self) -> None:
+        while True:
+            with self._cond:
+                while self._pending is None and not self._stopped:
+                    self._cond.wait()
+                if self._stopped:
+                    return
+                frame, self._pending = self._pending, None
+            try:
+                outcome = self.pipeline.process_frame(frame)
+            except Exception:
+                log.exception("Kare işlenirken hata")
+                continue
+            with self._cond:
+                self._latest = outcome
+
+    def stop(self) -> None:
+        with self._cond:
+            self._stopped = True
+            self._cond.notify()
+
+
 _FLIP_CODES = {"horizontal": 1, "vertical": 0, "both": -1}
 
 
@@ -118,8 +171,12 @@ def annotate(frame: np.ndarray, outcome: FrameOutcome, draw_regions: bool = True
 
 
 def run(cfg: AppConfig) -> None:
-    """Canlı okuma döngüsü: kaynaktan kare alır, işler, önizler."""
+    """Canlı okuma döngüsü: kareyi alıp arka plandaki işlemciye bırakır,
+    en son sonucu üzerine çizip gösterir. İşleme uzun sürse bile görüntü
+    akışı takılmaz."""
     pipeline = Pipeline(cfg)
+    processor = FrameProcessor(pipeline)
+    processor.start()
     preview = cfg.preview.enabled
     frame_interval = 1.0 / cfg.source.fps_limit if cfg.source.fps_limit > 0 else 0.0
 
@@ -137,11 +194,11 @@ def run(cfg: AppConfig) -> None:
                     continue
 
                 frame = prepare_frame(frame, cfg.source.flip, cfg.processing.max_width)
-                outcome = pipeline.process_frame(frame)
+                processor.submit(frame)  # beklemeden devam et
 
                 if preview:
                     try:
-                        shown = annotate(frame, outcome, cfg.preview.draw_regions)
+                        shown = annotate(frame, processor.latest, cfg.preview.draw_regions)
                         cv2.imshow(cfg.preview.window_name, shown)
                         key = cv2.waitKey(1) & 0xFF
                         if key in (ord("q"), 27):
@@ -158,6 +215,8 @@ def run(cfg: AppConfig) -> None:
                 if frame_interval > elapsed:
                     time.sleep(frame_interval - elapsed)
     finally:
+        processor.stop()
+        processor.join(timeout=5.0)
         pipeline.close()
         if preview:
             try:

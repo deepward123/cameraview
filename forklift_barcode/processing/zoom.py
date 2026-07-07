@@ -99,8 +99,11 @@ class AutoZoom:
         for scale in scales:
             zoomed = self._rescale(crop, scale)
             candidates = [zoomed]
-            if self.enhance and scale != 1.0:
+            if self.enhance:
+                # Hafif ve güçlü keskinleştirme: bulanık/odaksız kameralarda
+                # (özellikle 3x-4x zoom sonrası) okumayı kurtarır
                 candidates.append(self._enhance(zoomed))
+                candidates.append(self._enhance_strong(zoomed))
             for img in candidates:
                 decoded = self.decoder.decode(img)
                 if not decoded:
@@ -135,3 +138,10 @@ class AutoZoom:
         gray = clahe.apply(gray)
         blur = cv2.GaussianBlur(gray, (0, 0), 3)
         return cv2.addWeighted(gray, 1.5, blur, -0.5, 0)
+
+    @staticmethod
+    def _enhance_strong(img: np.ndarray) -> np.ndarray:
+        """Agresif keskinleştirme: ciddi bulanıklıkta çizgileri ayırır."""
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+        blur = cv2.GaussianBlur(gray, (0, 0), 3)
+        return cv2.addWeighted(gray, 4.0, blur, -3.0, 0)

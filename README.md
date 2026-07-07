@@ -87,18 +87,31 @@ Testleri VS Code'un **Testing** panelinden (kavanoz simgesi) çalıştırabilirs
 | `output.targets` | `console` ve/veya `csv` |
 | `output.dedupe_seconds` | Aynı barkodun tekrar yazılmaması için bekleme süresi |
 
-## Kasma / yavaşlık yaşarsanız
+## Performans mimarisi
 
-Ayarları şu sırayla deneyin (`config.yaml`):
+Görüntü akışı ile barkod işleme **ayrı iş parçacıklarında** çalışır: ana
+döngü kareyi alır, arka plandaki işlemciye bırakır ve beklemeden gösterir.
+İşleme yetişemezse aradaki kareler atlanır (hep en yeni kare işlenir);
+bu sayede ağır arama sürerken bile önizleme akıcı kalır.
+
+Yine de yavaşlık yaşarsanız (`config.yaml`):
 
 1. `processing.symbologies: [CODE128]` — yalnızca kullandığınız barkod tipini
-   yazın; çözücü diğer tipleri hiç denemez, en büyük hızlanmayı bu sağlar.
+   yazın; çözücü diğer tipleri hiç denemez, taramayı belirgin hızlandırır.
 2. `source.screen.region` — ekranın tamamı yerine yalnızca kamera görüntüsünün
    olduğu bölgeyi yakalayın (ör. `{left: 0, top: 0, width: 1280, height: 720}`).
 3. `processing.max_width: 960` — kareler daha da küçültülür.
 4. `source.fps_limit: 10` — saniyede işlenen kare sayısını düşürür.
 5. `processing.full_search_every: 5` — ağır arama daha seyrek çalışır
    (barkodun ilk yakalanması en fazla yarım saniye gecikebilir, sonrası aynı).
+
+## Bulanık görüntüler
+
+Zoom yapılan kesitlere hafif ve **güçlü keskinleştirme** varyantları
+uygulanır; hafif odak bulanıklığındaki barkodlar 3x-4x zoom ile okunabilir.
+Ancak dijital iyileştirmenin sınırı vardır: çizgiler tamamen birbirine
+karışmışsa yazılım kurtaramaz. Kalıcı çözüm için kamera odağını ayarlayın,
+merceği temizleyin veya kamerayı barkoda biraz yaklaştırın.
 
 ## Testler
 

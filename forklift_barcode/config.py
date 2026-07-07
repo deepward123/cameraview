@@ -29,7 +29,7 @@ class SourceConfig:
 @dataclass
 class ProcessingConfig:
     zoom_scales: list[float] = field(
-        default_factory=lambda: [1.0, 1.5, 2.0, 3.0, 0.5]
+        default_factory=lambda: [1.0, 1.5, 2.0, 3.0, 4.0, 0.5]
     )
     roi_margin: float = 0.20
     max_regions: int = 3

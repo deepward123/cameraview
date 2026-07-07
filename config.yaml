@@ -23,7 +23,7 @@ source:
 processing:
   # Otomatik dijital zoom: barkod bölgesi bulunur, bu ölçeklerde
   # yakınlaştırılıp/uzaklaştırılarak okuma başarılı olana dek denenir.
-  zoom_scales: [1.0, 1.5, 2.0, 3.0, 0.5]
+  zoom_scales: [1.0, 1.5, 2.0, 3.0, 4.0, 0.5]
   roi_margin: 0.20      # tespit edilen barkod bölgesine eklenecek pay (oran)
   max_regions: 3        # bir karede denenecek en fazla aday bölge
   enhance: true         # zoom yapılan kesitlere keskinleştirme/kontrast uygula

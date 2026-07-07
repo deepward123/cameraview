@@ -53,10 +53,12 @@ class BarcodeDecoder:
 
     def decode(self, image: np.ndarray) -> list[Decoded]:
         gray = self._to_gray(image)
-        results = self._decode_zbar(gray) if _HAS_ZBAR else []
-        if not results:
-            results = self._decode_opencv(gray)
-        return results
+        # OpenCV detektörleri yalnızca zbar hiç yoksa kullanılır: zbar'ın
+        # okuyamadığı her karede ayrıca OpenCV denemek hem yavaşlatır hem de
+        # bulanık görüntülerde yanlış pozitif (uydurma numara) üretir.
+        if _HAS_ZBAR:
+            return self._decode_zbar(gray)
+        return self._decode_opencv(gray)
 
     @staticmethod
     def _to_gray(image: np.ndarray) -> np.ndarray:
